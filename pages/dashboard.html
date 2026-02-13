@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>if(!localStorage.getItem('userLogged'))window.location.href='index.html';</script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg fixed-top" style="background:linear-gradient(90deg,#D4A017,#8B4513) !important;">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3 text-white" href="dashboard.html">
+                <span style="font-size:2rem;">🏪</span> EL TRIUNFO
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userRol">
+                    <span class="badge bg-success px-3 py-2 fs-6" id="rolBadge">Cargando...</span>
+                </span>
+                <!-- ✅ Admin ve botón Admin, Empleado NO -->
+                <a href="admin.html" class="btn btn-warning btn-sm me-2 admin-only">👨‍💼 Admin</a>
+                <a href="ventas.html" class="btn btn-success btn-sm me-2">🛒 Ventas</a>
+                <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <!-- ✅ CARDS DINÁMICAS por rol -->
+        <div class="row mb-5" id="cardsContainer">
+            <!-- Se llenan con JS -->
+        </div>
+
+        <!-- BOTONES NAVEGACIÓN -->
+        <div class="row g-4">
+            <div class="col-md-4">
+                <a href="gestion-productos.html" class="btn btn-warning btn-lg w-100 h-100 py-4 fs-5 fw-bold admin-only text-white text-decoration-none" style="background:linear-gradient(45deg,#D4A017,#8B4513);border-radius:20px;">
+                    📦 GESTIÓN PRODUCTOS
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="ventas.html" class="btn btn-success btn-lg w-100 h-100 py-4 fs-5 fw-bold text-white text-decoration-none" style="background:linear-gradient(45deg,#28a745,#20c997);border-radius:20px;">
+                    🛒 PUNTO DE VENTA
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="admin.html" class="btn btn-primary btn-lg w-100 h-100 py-4 fs-5 fw-bold admin-only text-white text-decoration-none" style="background:linear-gradient(45deg,#007bff,#0056b3);border-radius:20px;">
+                    👨‍💼 PANEL ADMIN
+                </a>
+            </div>
+        </div>
+
+        <!-- 📅 SECCIÓN BUSCAR DÍAS ANTERIORES (Solo Admin) -->
+        <div class="row mt-5 admin-only" style="display:none;">
+            <div class="col-12">
+                <div class="card border-0 shadow-lg" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+                    <div class="card-header fw-bold" style="background:linear-gradient(45deg,#17a2b8,#138496);color:white;border-radius:20px 20px 0 0;">
+                        <h5 class="mb-0">📅 HISTORIAL DE DÍAS</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">🔍</span>
+                                    <input type="text" class="form-control" id="buscadorDias" placeholder="Buscar fecha (YYYY-MM-DD)">
+                                    <button class="btn btn-outline-secondary" onclick="limpiarBuscadorDias()">Limpiar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="contenedorDias" style="max-height:500px;overflow-y:auto;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/storage.js"></script>
+    <script src="../js/notificaciones.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/daysManager.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rol = localStorage.getItem('userRol');
+            const username = localStorage.getItem('username') || 'Usuario';
+            
+            // Configurar badge usuario
+            document.getElementById('rolBadge').innerHTML = `${username.toUpperCase()}<br><small>${rol.toUpperCase()}</small>`;
+            document.getElementById('rolBadge').className = `badge bg-${rol === 'admin' ? 'danger' : 'success'} px-3 py-2 fs-6`;
+            
+            // ✅ Configurar permisos por rol (incluye cargar historial si es admin)
+            configurarPermisos();
+            actualizarDashboard();
+            setInterval(actualizarDashboard, 3000);
+        });
+
+        // ✅ Configurar permisos por rol
+        function configurarPermisos() {
+            const rol = localStorage.getItem('userRol') || 'empleado';
+            const adminElements = document.querySelectorAll('.admin-only');
+            
+            adminElements.forEach(elem => {
+                if (rol === 'admin') {
+                    elem.style.display = '';  // Mostrar
+                } else {
+                    elem.style.display = 'none';  // Ocultar
+                }
+            });
+            
+            // Mostrar rol en badge
+            const rolBadge = document.getElementById('rolBadge');
+            if (rolBadge) {
+                rolBadge.textContent = rol === 'admin' ? '👨‍💼 ADMINISTRADOR' : '👤 EMPLEADO';
+                rolBadge.className = rol === 'admin' ? 'badge bg-danger px-3 py-2 fs-6' : 'badge bg-success px-3 py-2 fs-6';
+            }
+            
+            // Cargar historial si es admin
+            if (rol === 'admin') {
+                cargarHistorialDias();
+            }
+        }
+
+        // 📅 Cargar y mostrar historial de días
+        function cargarHistorialDias() {
+            const historiaDias = JSON.parse(localStorage.getItem('historial_dias_el_triunfo') || '[]');
+            mostrarListaDias(historiaDias);
+            
+            // Agregar evento al buscador
+            const buscador = document.getElementById('buscadorDias');
+            if (buscador) {
+                buscador.addEventListener('input', function() {
+                    filtrarDias(this.value, historiaDias);
+                });
+            }
+        }
+
+        // Mostrar lista de días en cards
+        function mostrarListaDias(dias) {
+            const contenedor = document.getElementById('contenedorDias');
+            if (!contenedor) return;
+            
+            if (dias.length === 0) {
+                contenedor.innerHTML = '<div class="text-center py-4 text-muted">📭 No hay registros de días anteriores</div>';
+                return;
+            }
+            
+            let html = '<div class="row g-3">';
+            dias.forEach((dia, idx) => {
+                const fecha = new Date(dia.fecha).toLocaleDateString('es-CO', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                html += `
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-lg h-100" style="background:rgba(255,255,255,0.95);border-radius:20px;cursor:pointer;" onclick="toggleDetalleDia(${idx})">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold mb-2" style="color:#8B4513;">📅 ${fecha}</h6>
+                                <small class="text-muted d-block mb-2">${dia.fecha}</small>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="text-success fw-bold fs-6">$${dia.totalVentas.toLocaleString()}</div>
+                                        <small class="text-muted">Ventas</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-primary fw-bold fs-6">$${dia.ganancias.toLocaleString()}</div>
+                                        <small class="text-muted">Ganancias</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 detalle-dia-${idx}" style="display:none;">
+                        <div class="card border-0 shadow-lg" style="background:linear-gradient(45deg,#17a2b8,#138496);color:white;border-radius:20px;">
+                            <div class="card-body">
+                                <h5 class="fw-bold mb-3">📊 ${fecha}</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <div class="bg-white bg-opacity-20 p-3 rounded text-center">
+                                            <h6 class="fw-bold mb-1">📦</h6>
+                                            <h4 class="fw-bold">${dia.totalProductosVendidos || 0}</h4>
+                                            <small>Productos</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="bg-white bg-opacity-20 p-3 rounded text-center">
+                                            <h6 class="fw-bold mb-1">💰</h6>
+                                            <h4 class="fw-bold">$${dia.totalVentas.toLocaleString()}</h4>
+                                            <small>Ventas</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="bg-white bg-opacity-20 p-3 rounded text-center">
+                                            <h6 class="fw-bold mb-1">💵</h6>
+                                            <h4 class="fw-bold">$${dia.ganancias.toLocaleString()}</h4>
+                                            <small>Ganancias</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="bg-white bg-opacity-20 p-3 rounded text-center">
+                                            <h6 class="fw-bold mb-1">🛒</h6>
+                                            <h4 class="fw-bold">${dia.cantidadTransacciones}</h4>
+                                            <small>Transacciones</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${dia.productosMasVendidosPorCategoria && dia.productosMasVendidosPorCategoria.length > 0 ? `
+                                    <h6 class="fw-bold mt-3 mb-2">🏆 TOP por Categoría:</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-light mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th>Categoría</th>
+                                                    <th>Producto</th>
+                                                    <th class="text-center">Qty</th>
+                                                    <th class="text-end">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${dia.productosMasVendidosPorCategoria.map(p => `
+                                                    <tr>
+                                                        <td><small>${p.categoria}</small></td>
+                                                        <td><small>${p.producto}</small></td>
+                                                        <td class="text-center"><small>${p.cantidad}</small></td>
+                                                        <td class="text-end"><small>$${p.total.toLocaleString()}</small></td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ` : ''}
+                                <button class="btn btn-light btn-sm mt-3 w-100 fw-bold" onclick="toggleDetalleDia(${idx})">▲ Cerrar Detalle</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            contenedor.innerHTML = html;
+        }
+
+        // Toggle para mostrar/ocultar detalle
+        function toggleDetalleDia(idx) {
+            const detalle = document.querySelector(`.detalle-dia-${idx}`);
+            if (detalle) {
+                detalle.style.display = detalle.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Filtrar días por fecha
+        function filtrarDias(termino, todosLosDias) {
+            if (!termino) {
+                mostrarListaDias(todosLosDias);
+                return;
+            }
+            
+            const filtrados = todosLosDias.filter(d => d.fecha.includes(termino));
+            mostrarListaDias(filtrados);
+        }
+
+        // Limpiar buscador
+        function limpiarBuscadorDias() {
+            document.getElementById('buscadorDias').value = '';
+            cargarHistorialDias();
+        }
+
+
+        function actualizarDashboard() {
+            const rol = localStorage.getItem('userRol');
+            const inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo')) || [];
+            const cardsContainer = document.getElementById('cardsContainer');
+            
+            console.log('🔍 Productos cargados:', inventario.length, 'Rol:', rol);
+
+            if (rol === 'admin') {
+                // ✅ ADMIN ve TODO + DATOS DEL DÍA ANTERIOR
+                const ventas = JSON.parse(localStorage.getItem('ventas_el_triunfo')) || [];
+                const hoy = new Date().toDateString();
+                const ventasHoy = ventas.filter(v => new Date(v.fecha).toDateString() === hoy);
+                const ventasTotales = ventasHoy.reduce((sum, v) => sum + v.total, 0);
+                let gananciasHoy = 0;
+                
+                ventasHoy.forEach(venta => {
+                    const producto = inventario.find(p => p.id === venta.productoId);
+                    if (producto) {
+                        gananciasHoy += (venta.total - (venta.cantidad * venta.precioCompra));
+                    }
+                });
+
+                // 📅 Obtener datos del día anterior
+                const statsAyer = DaysManager.getYesterdayStats();
+
+                let cardsHTML = `
+                    <div class="col-md-3 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#28a745,#20c997);color:white;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1" id="totalProductos">${inventario.length}</h2>
+                                <p class="mb-0">Productos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#007bff,#0056b3);color:white;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1" id="totalStock">${inventario.reduce((s,p)=>s+p.cantidad,0)}</h2>
+                                <p class="mb-0">Stock Total</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#ffc107,#e0a800);color:#000;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1">$${ventasTotales.toLocaleString()}</h2>
+                                <p class="mb-0">Ventas Hoy</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#28a745,#20c997);color:white;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1">$${gananciasHoy.toLocaleString()}</h2>
+                                <p class="mb-0">Ganancias Hoy</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Agregar cards del día anterior si existen
+                if (statsAyer) {
+                    const fechaAyer = new Date(statsAyer.fecha).toLocaleDateString('es-CO', { 
+                        weekday: 'long', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+
+                    cardsHTML += `
+                        <div class="col-12 mt-4 mb-4">
+                            <div class="alert alert-info border-0 rounded-3 p-3" style="background:linear-gradient(45deg,#17a2b8,#138496);color:white;border-radius:20px;">
+                                <h5 class="fw-bold mb-0">📅 RESUMEN DÍA ANTERIOR: ${fechaAyer.toUpperCase()}</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#6f42c1,#5a1e8d);color:white;border-radius:20px;">
+                                <div class="card-body py-4">
+                                    <h5 class="fw-bold mb-1">📦</h5>
+                                    <h2 class="fw-bold mb-1">${statsAyer.totalProductosVendidos || 0}</h2>
+                                    <p class="mb-0">Productos Vendidos</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#ff6b6b,#ee5a6f);color:white;border-radius:20px;">
+                                <div class="card-body py-4">
+                                    <h5 class="fw-bold mb-1">💰</h5>
+                                    <h2 class="fw-bold mb-1">$${statsAyer.totalVentas.toLocaleString()}</h2>
+                                    <p class="mb-0">Ventas Totales</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                            <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#4ecdc4,#44a08d);color:white;border-radius:20px;">
+                                <div class="card-body py-4">
+                                    <h5 class="fw-bold mb-1">💵</h5>
+                                    <h2 class="fw-bold mb-1">$${statsAyer.ganancias.toLocaleString()}</h2>
+                                    <p class="mb-0">Ganancias</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Mostrar producto más vendido por categoría
+                    if (statsAyer.productosMasVendidosPorCategoria && statsAyer.productosMasVendidosPorCategoria.length > 0) {
+                        cardsHTML += `
+                            <div class="col-12 mb-4">
+                                <div class="card border-0 shadow-lg" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+                                    <div class="card-header fw-bold" style="background:linear-gradient(45deg,#f39c12,#e67e22);color:white;border-radius:20px 20px 0 0;">
+                                        <h6 class="mb-0" style="font-size:1rem;">🏆 PRODUCTO MÁS VENDIDO POR CATEGORÍA</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr style="background:#f8f9fa;">
+                                                    <th>Categoría</th>
+                                                    <th>Producto</th>
+                                                    <th class="text-center">Cantidad</th>
+                                                    <th class="text-end">Total Venta</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                        `;
+
+                        statsAyer.productosMasVendidosPorCategoria.forEach((item, idx) => {
+                            cardsHTML += `
+                                <tr>
+                                    <td><span class="badge bg-secondary">${item.categoria}</span></td>
+                                    <td><strong>${item.producto}</strong></td>
+                                    <td class="text-center"><span class="badge bg-primary">${item.cantidad}</span></td>
+                                    <td class="text-end text-success fw-bold">$${item.total.toLocaleString()}</td>
+                                </tr>
+                            `;
+                        });
+
+                        cardsHTML += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                cardsContainer.innerHTML = cardsHTML;
+            } else {
+                // ✅ EMPLEADO solo ve básicos
+                cardsContainer.innerHTML = `
+                    <div class="col-md-6 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#28a745,#20c997);color:white;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1">${inventario.length}</h2>
+                                <p class="mb-0">Productos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card text-center border-0 h-100" style="background:linear-gradient(45deg,#007bff,#0056b3);color:white;border-radius:20px;">
+                            <div class="card-body py-4">
+                                <h2 class="fw-bold mb-1">${inventario.reduce((s,p)=>s+p.cantidad,0)}</h2>
+                                <p class="mb-0">Stock Total</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function logout() {
+    if (confirm('¿Cerrar sesión?')) {
+        localStorage.removeItem('userLogged');
+        localStorage.removeItem('userRol');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html';
+    }
+}
+    </script>
+</body>
+</html>

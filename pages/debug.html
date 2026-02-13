@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐛 Debug - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body style="background: #f5f5f5;">
+    <nav class="navbar navbar-expand-lg fixed-top" style="background:linear-gradient(90deg,#D4A017,#8B4513) !important;">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3 text-white" href="dashboard.html">
+                🏪 EL TRIUNFO
+            </a>
+            <button class="btn btn-light btn-sm" onclick="window.location.href='admin.html'">← Volver</button>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <h2 class="fw-bold mb-4">🐛 PANEL DE DEBUG - LOCALSTORAGE</h2>
+
+        <!-- RESUMEN -->
+        <div class="card border-0 shadow-lg mb-4" style="background:linear-gradient(45deg,#5a1e8d,#6f42c1);color:white;border-radius:20px;">
+            <div class="card-body">
+                <h5 class="fw-bold">📊 RESUMEN DE DATOS</h5>
+                <div id="resumen" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- INVENTARIO -->
+        <div class="card border-0 shadow-lg mb-4" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+            <div class="card-header fw-bold" style="background:#28a745;color:white;border-radius:20px 20px 0 0;">
+                📦 INVENTARIO (inventario_el_triunfo)
+            </div>
+            <div class="card-body">
+                <pre id="inventarioData" style="background:#f8f9fa;padding:15px;border-radius:10px;max-height:300px;overflow-y:auto;"></pre>
+            </div>
+        </div>
+
+        <!-- VENTAS -->
+        <div class="card border-0 shadow-lg mb-4" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+            <div class="card-header fw-bold" style="background:#ffc107;color:#000;border-radius:20px 20px 0 0;">
+                🛒 VENTAS (ventas_el_triunfo)
+            </div>
+            <div class="card-body">
+                <pre id="ventasData" style="background:#f8f9fa;padding:15px;border-radius:10px;max-height:300px;overflow-y:auto;"></pre>
+            </div>
+        </div>
+
+        <!-- HISTORIAL DÍAS -->
+        <div class="card border-0 shadow-lg mb-4" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+            <div class="card-header fw-bold" style="background:#17a2b8;color:white;border-radius:20px 20px 0 0;">
+                📅 HISTORIAL DE DÍAS (historial_dias_el_triunfo)
+            </div>
+            <div class="card-body">
+                <pre id="historiaDiasData" style="background:#f8f9fa;padding:15px;border-radius:10px;max-height:300px;overflow-y:auto;"></pre>
+            </div>
+        </div>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <div class="card border-0 shadow-lg mb-4" style="background:linear-gradient(45deg,#ff6b6b,#ee5a52);color:white;border-radius:20px;">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3">⚙️ ACCIONES DE LIMPIEZA</h5>
+                <div class="btn-group-vertical w-100" role="group">
+                    <button class="btn btn-outline-light btn-lg mb-2" onclick="limpiarVentas()">
+                        🗑️ Limpiar VENTAS
+                    </button>
+                    <button class="btn btn-outline-light btn-lg mb-2" onclick="limpiarInventario()">
+                        🗑️ Limpiar INVENTARIO
+                    </button>
+                    <button class="btn btn-outline-light btn-lg mb-2" onclick="limpiarHistorialDias()">
+                        🗑️ Limpiar HISTORIAL DÍAS
+                    </button>
+                    <button class="btn btn-danger btn-lg" onclick="limpiarTodo()">
+                        ⚠️ LIMPIAR TODO
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 📊 Cargar y mostrar todos los datos
+        function cargarDatos() {
+            console.clear();
+            console.log('%c🐛 DEBUG PANEL CARGADO', 'color: #ff6b6b; font-size: 16px; font-weight: bold;');
+
+            // Obtener datos
+            const inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo') || '[]');
+            const ventas = JSON.parse(localStorage.getItem('ventas_el_triunfo') || '[]');
+            const historiaDias = JSON.parse(localStorage.getItem('historial_dias_el_triunfo') || '[]');
+
+            // Mostrar en consola
+            console.log('📦 Inventario:', inventario);
+            console.log('🛒 Ventas:', ventas);
+            console.log('📅 Historial Días:', historiaDias);
+
+            // Mostrar en página
+            document.getElementById('inventarioData').textContent = JSON.stringify(inventario, null, 2);
+            document.getElementById('ventasData').textContent = JSON.stringify(ventas, null, 2);
+            document.getElementById('historiaDiasData').textContent = JSON.stringify(historiaDias, null, 2);
+
+            // Resumen
+            const hoy = new Date().toISOString().split('T')[0];
+            const ventasHoy = ventas.filter(v => new Date(v.fecha).toISOString().split('T')[0] === hoy);
+            const totalVentasHoy = ventasHoy.reduce((s, v) => s + (v.total || 0), 0);
+
+            document.getElementById('resumen').innerHTML = `
+                <table class="table table-borderless text-white">
+                    <tr><td>📦 Productos:</td><td><strong>${inventario.length}</strong></td></tr>
+                    <tr><td>🛒 Ventas registradas:</td><td><strong>${ventas.length}</strong></td></tr>
+                    <tr><td>📅 Días guardados:</td><td><strong>${historiaDias.length}</strong></td></tr>
+                    <tr><td>💰 Ventas hoy (${hoy}):</td><td><strong>$${totalVentasHoy.toLocaleString()}</strong></td></tr>
+                </table>
+            `;
+        }
+
+        // 🗑️ Funciones de limpieza
+        function limpiarVentas() {
+            if (confirm('¿Limpiar todas las VENTAS?')) {
+                localStorage.removeItem('ventas_el_triunfo');
+                console.log('✅ Ventas limpiadas');
+                cargarDatos();
+            }
+        }
+
+        function limpiarInventario() {
+            if (confirm('¿Limpiar INVENTARIO?')) {
+                localStorage.removeItem('inventario_el_triunfo');
+                console.log('✅ Inventario limpiado');
+                cargarDatos();
+            }
+        }
+
+        function limpiarHistorialDias() {
+            if (confirm('¿Limpiar HISTORIAL DE DÍAS?')) {
+                localStorage.removeItem('historial_dias_el_triunfo');
+                console.log('✅ Historial de días limpiado');
+                cargarDatos();
+            }
+        }
+
+        function limpiarTodo() {
+            if (confirm('⚠️ ¿LIMPIAR TODO EL LOCALSTORAGE?\n\nEsto eliminará TODOS los datos.')) {
+                localStorage.clear();
+                console.log('⚠️ TODO LIMPIADO');
+                cargarDatos();
+            }
+        }
+
+        // Cargar al inicio
+        document.addEventListener('DOMContentLoaded', cargarDatos);
+        setInterval(cargarDatos, 2000); // Actualizar cada 2 segundos
+    </script>
+</body>
+</html>

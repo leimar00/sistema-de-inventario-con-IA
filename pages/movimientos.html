@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimientos - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/inventario.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-paisa fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3" href="index.html">
+                <span class="paisa-icon">🏪</span> EL TRIUNFO
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userRol">
+                    <span class="badge bg-success" id="rolBadge">ADMIN</span>
+                </span>
+                <button class="btn btn-paisa btn-sm me-2" onclick="cambiarRol()">Cambiar Rol</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <div class="card card-paisa mb-4">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="mb-0"><span class="paisa-icon">📈</span> Historial Movimientos</h5>
+                <button class="btn btn-danger btn-sm" onclick="limpiarMovimientos()">🗑️ Limpiar</button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaMovimientos"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Movimiento -->
+        <div class="modal fade" id="modalMovimiento">
+            <div class="modal-dialog">
+                <div class="modal-content card-paisa">
+                    <div class="modal-header bg-warning bg-opacity-75">
+                        <h5 class="modal-title">Registrar Movimiento</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="formMovimiento">
+                            <input type="hidden" id="movProductoId">
+                            <div class="mb-3">
+                                <label>Producto</label>
+                                <input type="text" class="form-control" id="movProductoNombre" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label>Tipo</label>
+                                <select class="form-select" id="tipoMovimiento">
+                                    <option value="entrada">Entrada (Compra)</option>
+                                    <option value="salida">Salida (Venta)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label>Cantidad</label>
+                                <input type="number" class="form-control" id="cantidadMovimiento" min="1">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-paisa" onclick="guardarMovimiento()">Registrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/storage.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarMovimientos();
+
+            window.cambiarRol = function() {
+                const rol = localStorage.getItem('userRol') === 'admin' ? 'empleado' : 'admin';
+                localStorage.setItem('userRol', rol);
+                document.getElementById('rolBadge').textContent = rol.toUpperCase();
+                location.reload();
+            };
+
+            window.limpiarMovimientos = function() {
+                if (confirm('¿Limpiar historial?')) {
+                    localStorage.removeItem('movimientos_el_triunfo');
+                    cargarMovimientos();
+                }
+            };
+
+            function cargarMovimientos() {
+                const movimientos = JSON.parse(localStorage.getItem('movimientos_el_triunfo')) || [];
+                const tbody = document.getElementById('tablaMovimientos');
+                tbody.innerHTML = movimientos.slice(0, 50).map(m => {
+                    const fecha = new Date(m.fecha).toLocaleString('es-CO');
+                    return `
+                        <tr>
+                            <td>${fecha}</td>
+                            <td><span class="badge bg-${m.tipo === 'entrada' ? 'success' : 'danger'}">${m.tipo}</span></td>
+                            <td>${m.productoNombre}</td>
+                            <td>${m.cantidad}</td>
+                            <td><span class="badge bg-info">${m.usuario}</span></td>
+                        </tr>
+                    `;
+                }).join('') || '<tr><td colspan="5" class="text-center">Sin movimientos</td></tr>';
+            }
+        });
+    </script>
+</body>
+</html>

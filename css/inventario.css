@@ -1,0 +1,55 @@
+/* ESTILOS PAISA - EL TRIUNFO */
+:root {
+    --paisa-gold: #D4A017;
+    --paisa-brown: #8B4513;
+    --paisa-cream: #F5F5DC;
+    --shadow-paisa: 0 8px 32px rgba(139, 69, 19, 0.3);
+}
+
+* { font-family: 'Poppins', sans-serif; }
+
+body { 
+    background: linear-gradient(135deg, var(--paisa-cream) 0%, #FFF8DC 100%);
+    min-height: 100vh;
+}
+
+.navbar-paisa {
+    background: linear-gradient(90deg, var(--paisa-gold), var(--paisa-brown)) !important;
+    box-shadow: var(--shadow-paisa);
+}
+
+.btn-paisa {
+    background: linear-gradient(45deg, var(--paisa-gold), var(--paisa-brown));
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-paisa:hover { 
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-paisa);
+    color: white !important;
+}
+
+.card-paisa {
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 20px;
+    box-shadow: var(--shadow-paisa);
+    transition: transform 0.3s ease;
+}
+
+.card-paisa:hover { transform: translateY(-5px); }
+
+.stock-critico {
+    border-left: 5px solid #DC3545;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.paisa-icon { font-size: 1.5rem; color: var(--paisa-gold); }

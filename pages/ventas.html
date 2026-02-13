@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>if(!localStorage.getItem('userLogged'))window.location.href='index.html';</script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg fixed-top" style="background:linear-gradient(90deg,#D4A017,#8B4513) !important;">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3 text-white" href="dashboard.html">
+                <span style="font-size:2rem;">🏪</span> EL TRIUNFO
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userRol">
+                    <span class="badge bg-primary px-3 py-2 fs-6" id="rolBadge">Cargando...</span>
+                </span>
+                <a href="dashboard.html" class="btn btn-outline-light btn-sm me-2">📊 Dashboard</a>
+                <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center text-white border-0" style="background:linear-gradient(45deg,#dc3545,#c82333);border-radius:20px;">
+                    <div class="card-body py-4">
+                        <h2 id="totalVenta">$0</h2>
+                        <p class="mb-0">Venta Actual (Carrito)</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 admin-only" style="display:none;">
+                <div class="card text-center text-white border-0" style="background:linear-gradient(45deg,#28a745,#20c997);border-radius:20px;">
+                    <div class="card-body py-4">
+                        <h2 id="totalVentasHoy">$0</h2>
+                        <p class="mb-0">Ventas Totales Hoy</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 admin-only" style="display:none;">
+                <div class="card text-center text-white border-0" style="background:linear-gradient(45deg,#ffc107,#e0a800);border-radius:20px;">
+                    <div class="card-body py-4">
+                        <h2 id="gananciasHoy" style="color:#333;">$0</h2>
+                        <p class="mb-0" style="color:#333;">Ganancias Hoy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-lg mb-4" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+            <div class="card-header text-white fw-bold" style="background:linear-gradient(45deg,#6f42c1,#5a1e8d);">
+                <h5><span style="font-size:1.5rem;">🔍</span> Buscar Producto</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">🔍</span>
+                    <input type="text" class="form-control fs-5" id="buscador" placeholder="Escribe nombre del producto...">
+                    <button class="btn btn-outline-secondary" onclick="limpiarBuscador()">🗑️</button>
+                </div>
+                <div id="resultadosBusqueda"></div>
+                <!-- ✅ INFO DEBUG LOCALSTORAGE -->
+                <div id="debugInfo" class="mt-3 p-2 bg-light rounded small text-muted"></div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-lg" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+            <div class="card-header text-white fw-bold" style="background:linear-gradient(45deg,#28a745,#20c997);">
+                <h5><span style="font-size:1.5rem;">🛒</span> Carrito (<span id="itemsCarrito">0</span>)</h5>
+            </div>
+            <div class="card-body p-3">
+                <div id="contenedorCarrito" style="max-height:300px;overflow-y:auto;"></div>
+                <div class="mt-3 p-3 border-top">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-lg fw-bold" id="btnProcesar" onclick="procesarVenta()" disabled>
+                            💰 FINALIZAR VENTA $<span id="totalFinal">0</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="vaciarCarrito()">🗑️ Vaciar Carrito</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let carrito = [];
+        let todosLosProductos = [];
+
+        // ✅ INICIO - CARGAR TODO
+        document.addEventListener('DOMContentLoaded', function() {
+            configurarSesion();
+            cargarInventarioCompleto(); // 🔧 CAMBIO CLAVE
+            configurarEventListeners();
+            actualizarVentasDiarias(); // 📊 Mostrar ventas del día
+            setInterval(actualizarVentasDiarias, 2000); // Actualizar cada 2 segundos
+            
+            // 👨‍💼 Mostrar tarjetas de admin solo si es admin
+            const userRol = localStorage.getItem('userRol');
+            const adminCards = document.querySelectorAll('.admin-only');
+            if (userRol === 'admin') {
+                adminCards.forEach(card => card.style.display = 'block');
+            }
+        });
+
+        // 📊 Función para calcular ventas totales y ganancias del día
+        function actualizarVentasDiarias() {
+            const ventasRegistradas = JSON.parse(localStorage.getItem('ventas_el_triunfo') || '[]');
+            const inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo') || '[]');
+            
+            const hoy = new Date().toISOString().split('T')[0];
+            const ventasHoy = ventasRegistradas.filter(v => {
+                const fechaVenta = new Date(v.fecha).toISOString().split('T')[0];
+                return fechaVenta === hoy;
+            });
+            
+            // Calcular totales
+            let totalVentasHoy = 0;
+            let gananciasHoy = 0;
+            
+            ventasHoy.forEach(venta => {
+                totalVentasHoy += venta.total || 0;
+                const ganancia = (venta.total || 0) - (venta.cantidad * venta.precioCompra);
+                gananciasHoy += ganancia;
+            });
+            
+            // Mostrar en pantalla
+            document.getElementById('totalVentasHoy').textContent = '$' + totalVentasHoy.toLocaleString();
+            document.getElementById('gananciasHoy').textContent = '$' + gananciasHoy.toLocaleString();
+        }
+
+        function configurarSesion() {
+            const userRol = localStorage.getItem('userRol') || 'empleado';
+            const username = localStorage.getItem('username') || 'Usuario';
+            document.getElementById('rolBadge').innerHTML = `${username.toUpperCase()}<br><small>${userRol.toUpperCase()}</small>`;
+            document.getElementById('rolBadge').className = `badge bg-${userRol === 'admin' ? 'success' : 'primary'} px-3 py-2 fs-6`;
+        }
+
+        // 🔧 FUNCIÓN CLAVE - LOCALSTORAGE DIRECTO
+        function cargarInventarioCompleto() {
+            // ✅ LEER DIRECTO DE LOCALSTORAGE
+            const inventarioRaw = localStorage.getItem('inventario_el_triunfo');
+            console.log('🔍 RAW localStorage:', inventarioRaw);
+            
+            if (inventarioRaw) {
+                todosLosProductos = JSON.parse(inventarioRaw);
+                console.log('✅ PRODUCTOS CARGADOS:', todosLosProductos);
+                actualizarDebug();
+            } else {
+                todosLosProductos = [];
+                document.getElementById('resultadosBusqueda').innerHTML = 
+                    '<div class="text-center py-4 text-danger"><h5>⚠️ SIN PRODUCTOS</h5><p>Admin debe crear productos en "Gestión Productos"</p></div>';
+            }
+        }
+
+        function actualizarDebug() {
+            const debugEl = document.getElementById('debugInfo');
+            debugEl.innerHTML = `
+                📦 Productos disponibles: <strong>${todosLosProductos.length}</strong><br>
+                🔑 Key localStorage: <code>inventario_el_triunfo</code>
+            `;
+        }
+
+        function configurarEventListeners() {
+            document.getElementById('buscador').addEventListener('input', function() {
+                buscarProductos(this.value.toLowerCase().trim());
+            });
+        }
+
+        // 🔍 BUSCADOR
+        function buscarProductos(termino) {
+            const resultados = document.getElementById('resultadosBusqueda');
+            
+            if (termino.length === 0) {
+                resultados.innerHTML = '<div class="text-center py-4 text-muted">Escribe nombre o categoría...</div>';
+                return;
+            }
+
+            const filtrados = todosLosProductos.filter(p => 
+                p.nombre.toLowerCase().includes(termino) ||
+                p.categoria.toLowerCase().includes(termino)
+            );
+
+            if (filtrados.length === 0) {
+                resultados.innerHTML = '<div class="text-center py-4 text-muted">No se encontraron productos</div>';
+                return;
+            }
+
+            resultados.innerHTML = filtrados.map(producto => `
+                <div class="border p-3 mb-3 rounded bg-light shadow-sm">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1 me-3">
+                            <h6 class="fw-bold mb-1">${producto.nombre}</h6>
+                            <div>
+                                <span class="badge bg-secondary mb-1 me-1">${producto.categoria}</span>
+                                <span class="badge ${producto.cantidad <= 5 ? 'bg-warning text-dark' : 'bg-success'}">
+                                    ${producto.cantidad}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end ms-2">
+                            <div class="fw-bold text-success fs-4 mb-2">$${producto.precioVenta.toLocaleString()}</div>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" id="qty_${producto.id}" min="1" max="${producto.cantidad}" value="1" style="max-width:70px;">
+                                <button class="btn btn-success px-3" onclick="agregarAlCarrito('${producto.id}')">➕</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function limpiarBuscador() {
+            document.getElementById('buscador').value = '';
+            document.getElementById('resultadosBusqueda').innerHTML = '<div class="text-center py-4 text-muted">Escribe para buscar productos...</div>';
+        }
+
+        // 🛒 CARRITO
+        function agregarAlCarrito(id) {
+            const qtyInput = document.getElementById(`qty_${id}`);
+            if (!qtyInput) return;
+            
+            const qty = parseInt(qtyInput.value);
+            const producto = todosLosProductos.find(p => p.id === id);
+            
+            if (!producto) {
+                alert('❌ Producto no encontrado');
+                return;
+            }
+            if (qty > producto.cantidad || qty <= 0) {
+                alert(`❌ Máximo ${producto.cantidad}`);
+                return;
+            }
+
+            const existe = carrito.find(item => item.id === id);
+            if (existe) {
+                if (existe.cantidad + qty > producto.cantidad) {
+                    alert('❌ Stock insuficiente');
+                    return;
+                }
+                existe.cantidad += qty;
+            } else {
+                carrito.push({
+                    id: producto.id,
+                    nombre: producto.nombre,
+                    precioVenta: producto.precioVenta,
+                    precioCompra: producto.precioCompra,
+                    cantidad: qty
+                });
+            }
+
+            actualizarCarrito();
+            limpiarBuscador();
+            document.getElementById('buscador').focus();
+        }
+
+        function actualizarCarrito() {
+            const contenedor = document.getElementById('contenedorCarrito');
+            const totalEl = document.getElementById('totalVenta');
+            const itemsEl = document.getElementById('itemsCarrito');
+            const btnProcesar = document.getElementById('btnProcesar');
+            const totalFinal = document.getElementById('totalFinal');
+
+            let total = carrito.reduce((sum, item) => sum + (item.precioVenta * item.cantidad), 0);
+
+            itemsEl.textContent = carrito.length;
+            totalEl.textContent = `$${total.toLocaleString()}`;
+            totalFinal.textContent = total.toLocaleString();
+            btnProcesar.disabled = carrito.length === 0;
+            btnProcesar.className = carrito.length === 0 ? 'btn btn-success btn-lg fw-bold' : 'btn btn-success btn-lg fw-bold shadow-lg';
+
+            if (carrito.length === 0) {
+                contenedor.innerHTML = '<div class="text-center py-4 text-muted">🛒 Carrito vacío</div>';
+                return;
+            }
+
+            contenedor.innerHTML = carrito.map((item, i) => `
+                <div class="border-bottom py-2 mb-2">
+                    <div class="row align-items-center">
+                        <div class="col-6">
+                            <strong>${item.nombre}</strong>
+                            <br><small class="text-success">$${item.precioVenta.toLocaleString()}</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="input-group input-group-sm">
+                                <button class="btn btn-outline-secondary px-2 py-1" onclick="cambiarCantidad(${i},-1)">−</button>
+                                <span class="form-control text-center fw-bold">${item.cantidad}</span>
+                                <button class="btn btn-outline-secondary px-2 py-1" onclick="cambiarCantidad(${i},1)">+</button>
+                            </div>
+                        </div>
+                        <div class="col-3 text-end">
+                            <div class="fw-bold text-success fs-6 mb-1">$${(item.precioVenta*item.cantidad).toLocaleString()}</div>
+                            <button class="btn btn-sm btn-outline-danger w-100" onclick="eliminarDelCarrito(${i})">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function cambiarCantidad(i, cambio) {
+            const producto = todosLosProductos.find(p => p.id === carrito[i].id);
+            if (!producto) return;
+            
+            if (carrito[i].cantidad + cambio <= 0) {
+                eliminarDelCarrito(i);
+                return;
+            }
+            if (carrito[i].cantidad + cambio > producto.cantidad) {
+                alert('❌ Stock insuficiente');
+                return;
+            }
+            carrito[i].cantidad += cambio;
+            actualizarCarrito();
+        }
+
+        function eliminarDelCarrito(i) {
+            carrito.splice(i, 1);
+            actualizarCarrito();
+        }
+
+        function vaciarCarrito() {
+            if (confirm('¿Vaciar carrito?')) {
+                carrito = [];
+                actualizarCarrito();
+            }
+        }
+
+        function procesarVenta() {
+            // 🔧 RECARGAR INVENTARIO JUSTO ANTES DE VENDER
+            cargarInventarioCompleto();
+            
+            let inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo')) || [];
+            let ventas = JSON.parse(localStorage.getItem('ventas_el_triunfo')) || [];
+            let totalVenta = 0;
+
+            for (let item of carrito) {
+                const productoIdx = inventario.findIndex(p => p.id === item.id);
+                if (productoIdx === -1 || inventario[productoIdx].cantidad < item.cantidad) {
+                    alert(`❌ Error stock: ${item.nombre}`);
+                    return;
+                }
+            }
+
+            carrito.forEach(item => {
+                const productoIdx = inventario.findIndex(p => p.id === item.id);
+                inventario[productoIdx].cantidad -= item.cantidad;
+
+                ventas.unshift({
+                    id: Date.now().toString(),
+                    productoId: item.id,
+                    productoNombre: item.nombre,
+                    precioCompra: item.precioCompra,
+                    precioVenta: item.precioVenta,
+                    cantidad: item.cantidad,
+                    total: item.precioVenta * item.cantidad,
+                    tipo: 'venta',
+                    usuario: localStorage.getItem('username'),
+                    fecha: new Date().toISOString()
+                });
+                totalVenta += item.total;
+            });
+
+            // ✅ ESCRIBIR LOCALSTORAGE
+            localStorage.setItem('inventario_el_triunfo', JSON.stringify(inventario));
+            localStorage.setItem('ventas_el_triunfo', JSON.stringify(ventas));
+            
+            carrito = [];
+            actualizarCarrito();
+            cargarInventarioCompleto(); // 🔧 RECARGAR
+            actualizarVentasDiarias(); // 📊 Actualizar totales
+            
+            alert(`✅ Venta OK!\n💰 $${totalVenta.toLocaleString()}`);
+        }
+
+function logout() {
+    if (confirm('¿Cerrar sesión?')) {
+        localStorage.removeItem('userLogged');
+        localStorage.removeItem('userRol');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html';
+    }
+}
+    </script>
+</body>
+</html>

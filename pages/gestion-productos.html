@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Productos - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>if(!localStorage.getItem('userLogged')||localStorage.getItem('userRol')!=='admin')window.location.href='index.html';</script>
+    <style>
+        .buscador-inventario { border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .tabla-fila:hover { background-color: #f8f9fa !important; transform: scale(1.01); transition: all 0.2s; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg fixed-top" style="background:linear-gradient(90deg,#D4A017,#8B4513) !important;">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3 text-white" href="dashboard.html">
+                <span style="font-size:2rem;">🏪</span> EL TRIUNFO
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userRol">
+                    <span class="badge bg-success px-3 py-2 fs-6" id="rolBadge">ADMIN</span>
+                </span>
+                <a href="dashboard.html" class="btn btn-outline-light btn-sm me-2">📊 Dashboard</a>
+                <a href="ventas.html" class="btn btn-success btn-sm me-2">🛒 Ventas</a>
+                <a href="admin.html" class="btn btn-warning btn-sm me-2">🏠 Admin</a>
+                <button class="btn btn-danger btn-sm" onclick="logout()">🚪 Salir</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <div class="row">
+            <!-- FORMULARIO CRUD -->
+            <div class="col-md-5 mb-4">
+                <div class="card border-0 shadow-lg" style="background:rgba(255,255,255,0.95);border-radius:20px;">
+                    <div class="card-header text-white fw-bold" style="background:linear-gradient(45deg,#D4A017,#8B4513);">
+                        <h5><span style="font-size:1.5rem;">➕</span> <span id="tituloForm">Nuevo Producto</span></h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="formProducto">
+                            <input type="hidden" id="editId">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">🛒 Nombre *</label>
+                                <input type="text" class="form-control" id="nombreProducto" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">🏷️ Categoría *</label>
+                                <select class="form-select" id="categoriaProducto" required>
+                                    <option value="Frutas">🍎 Frutas</option>
+                                    <option value="Verduras">🥕 Verduras</option>
+                                    <option value="Carnes">🥩 Carnes</option>
+                                    <option value="Lácteos">🧀 Lácteos</option>
+                                    <option value="Bebidas">🥤 Bebidas</option>
+                                    <option value="Panadería">🍞 Panadería</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-danger">💸 Precio Compra * ($)</label>
+                                <input type="number" class="form-control" id="precioCompra" min="0" step="100" value="2000" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-success">💰 Precio Venta * ($)</label>
+                                <input type="number" class="form-control" id="precioVenta" min="0" step="100" value="2500" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">📦 Stock *</label>
+                                <input type="number" class="form-control" id="cantidadProducto" min="0" value="10" required>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn w-100 fw-bold text-white fs-5" style="background:linear-gradient(45deg,#28a745,#20c997);" id="btnGuardar">
+                                    💾 GUARDAR PRODUCTO
+                                </button>
+                                <button type="button" class="btn btn-secondary w-100 fs-6" id="btnCancelar">❌ CANCELAR / NUEVO</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🔍 BUSCADOR + TABLA -->
+            <div class="col-md-7 mb-4">
+                <div class="card border-0 shadow-lg" style="background:rgba(255,255,255,0.95);border-radius:20px;height:100%;">
+                    <div class="card-header text-white fw-bold" style="background:linear-gradient(45deg,#D4A017,#8B4513);">
+                        <h5 class="mb-0"><span style="font-size:1.5rem;">📦</span> Inventario (<span id="totalProductosInv">0</span>)</h5>
+                    </div>
+                    <!-- 🔍 BARRA BUSQUEDA -->
+                    <div class="card-body border-bottom p-3">
+                        <div class="input-group buscador-inventario mb-3">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control fs-5 fw-bold" id="buscadorInventario" placeholder="🔍 Buscar por nombre o categoría...">
+                            <button class="btn btn-outline-secondary" type="button" id="btnLimpiarBuscador">🗑️</button>
+                        </div>
+                        <div class="text-center text-muted" id="sinResultados" style="display:none;">
+                            <h5>📭 No se encontraron productos</h5>
+                            <p>Escribe para buscar o crea un nuevo producto</p>
+                        </div>
+                    </div>
+                    <!-- TABLA -->
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height:500px;overflow-y:auto;">
+                            <table class="table table-hover mb-0" id="tablaInventario">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th style="width:80px;">ID</th>
+                                        <th>Producto</th>
+                                        <th style="width:120px;">Compra</th>
+                                        <th style="width:120px;">Venta</th>
+                                        <th style="width:80px;">Stock</th>
+                                        <th style="width:150px;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyInventario">
+                                    <tr><td colspan="6" class="text-center py-5 text-muted">Cargando inventario...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let todosLosProductos = [];
+        let productosFiltrados = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarInventarioCompleto();
+            setupEventListeners();
+        });
+
+        // 🔍 BUSCADOR INVENTARIO
+        document.getElementById('buscadorInventario').addEventListener('input', function() {
+            const termino = this.value.toLowerCase().trim();
+            filtrarProductos(termino);
+        });
+
+        document.getElementById('btnLimpiarBuscador').addEventListener('click', function() {
+            document.getElementById('buscadorInventario').value = '';
+            filtrarProductos('');
+        });
+
+        function cargarInventarioCompleto() {
+            todosLosProductos = JSON.parse(localStorage.getItem('inventario_el_triunfo')) || [];
+            productosFiltrados = [...todosLosProductos];
+            mostrarProductos(productosFiltrados);
+            actualizarTotalProductos();
+        }
+
+        function filtrarProductos(termino) {
+            if (termino === '') {
+                productosFiltrados = [...todosLosProductos];
+                document.getElementById('sinResultados').style.display = 'none';
+            } else {
+                productosFiltrados = todosLosProductos.filter(producto => 
+                    producto.nombre.toLowerCase().includes(termino) ||
+                    producto.categoria.toLowerCase().includes(termino)
+                );
+                document.getElementById('sinResultados').style.display = productosFiltrados.length === 0 ? 'block' : 'none';
+            }
+            mostrarProductos(productosFiltrados);
+            actualizarTotalProductos();
+        }
+
+        function mostrarProductos(productos) {
+            const tbody = document.getElementById('tbodyInventario');
+            
+            if (productos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">No hay productos que mostrar</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = productos.map(producto => {
+                const bajoStock = producto.cantidad <= 5;
+                const critico = producto.cantidad <= 2;
+                const ganancia = producto.precioVenta - producto.precioCompra;
+                
+                return `
+                    <tr class="tabla-fila ${critico ? 'table-danger' : bajoStock ? 'table-warning' : ''}">
+                        <td><code>${producto.id.slice(-6)}</code></td>
+                        <td>
+                            <strong>${producto.nombre}</strong><br>
+                            <small class="text-muted">${producto.categoria}</small>
+                        </td>
+                        <td class="text-danger fw-bold fs-6">$${producto.precioCompra.toLocaleString()}</td>
+                        <td class="text-success fw-bold fs-6">$${producto.precioVenta.toLocaleString()}</td>
+                        <td class="${critico ? 'text-danger fw-bold fs-3' : bajoStock ? 'text-warning fw-bold fs-3' : 'text-success fw-bold fs-3'}">
+                            ${producto.cantidad}
+                            ${bajoStock ? '<br><small class="text-danger">¡REPONE YA!</small>' : ''}
+                        </td>
+                        <td>
+                            <div class="btn-group-vertical btn-group-sm w-100" role="group">
+                                <button class="btn btn-warning mb-1" onclick="editarProducto('${producto.id}')" title="Editar">
+                                    <i class="bi bi-pencil"></i> Reponer
+                                </button>
+                                <button class="btn btn-danger" onclick="eliminarProducto('${producto.id}', '${producto.nombre}')" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            <div class="mt-1 text-center">
+                                <small class="badge bg-success fs-6">+$${ganancia}</small>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function actualizarTotalProductos() {
+            document.getElementById('totalProductosInv').textContent = todosLosProductos.length;
+        }
+
+        // ✅ FORMULARIO - GUARDAR/EDITAR CORREGIDO
+        function setupEventListeners() {
+            document.getElementById('formProducto').addEventListener('submit', function(e) {
+                e.preventDefault();
+                guardarProducto();
+            });
+            
+            document.getElementById('btnCancelar').addEventListener('click', function() {
+                cancelarEdicion();
+            });
+        }
+
+        function guardarProducto() {
+            const id = document.getElementById('editId').value;
+            const nombre = document.getElementById('nombreProducto').value.trim();
+            const categoria = document.getElementById('categoriaProducto').value;
+            const precioCompra = parseInt(document.getElementById('precioCompra').value);
+            const precioVenta = parseInt(document.getElementById('precioVenta').value);
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+
+            // VALIDACIÓN
+            if (!nombre || !categoria || isNaN(precioCompra) || isNaN(precioVenta) || isNaN(cantidad)) {
+                alert('❌ Completa todos los campos correctamente');
+                return;
+            }
+            if (precioVenta <= precioCompra) {
+                alert('❌ Precio venta debe ser mayor al precio compra');
+                return;
+            }
+
+            const producto = {
+                id: id || Date.now().toString(),
+                nombre,
+                categoria,
+                precioCompra,
+                precioVenta,
+                cantidad,
+                fechaCreacion: new Date().toISOString()
+            };
+
+            let inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo')) || [];
+            
+            if (id) {
+                // EDITAR
+                const index = inventario.findIndex(p => p.id === id);
+                inventario[index] = producto;
+                alert('✅ Producto actualizado y reponido correctamente');
+                document.getElementById('tituloForm').textContent = 'Nuevo Producto';
+                document.getElementById('btnGuardar').textContent = '💾 GUARDAR PRODUCTO';
+            } else {
+                // NUEVO
+                inventario.push(producto);
+                alert('✅ Producto creado correctamente');
+            }
+
+            localStorage.setItem('inventario_el_triunfo', JSON.stringify(inventario));
+            cancelarEdicion();
+            cargarInventarioCompleto();
+        }
+
+        // ✅ EDITAR FUNCIONA 100%
+        function editarProducto(id) {
+            const producto = todosLosProductos.find(p => p.id === id);
+            if (producto) {
+                document.getElementById('editId').value = producto.id;
+                document.getElementById('nombreProducto').value = producto.nombre;
+                document.getElementById('categoriaProducto').value = producto.categoria;
+                document.getElementById('precioCompra').value = producto.precioCompra;
+                document.getElementById('precioVenta').value = producto.precioVenta;
+                document.getElementById('cantidadProducto').value = producto.cantidad;
+                
+                document.getElementById('tituloForm').textContent = `Editando: ${producto.nombre}`;
+                document.getElementById('btnGuardar').textContent = '✏️ ACTUALIZAR PRODUCTO';
+                
+                // Scroll suave al formulario
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function cancelarEdicion() {
+            document.getElementById('formProducto').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('precioCompra').value = '2000';
+            document.getElementById('precioVenta').value = '2500';
+            document.getElementById('cantidadProducto').value = '10';
+            document.getElementById('tituloForm').textContent = 'Nuevo Producto';
+            document.getElementById('btnGuardar').textContent = '💾 GUARDAR PRODUCTO';
+        }
+
+        function eliminarProducto(id, nombre) {
+            if (confirm(`¿Eliminar "${nombre}" permanentemente?`)) {
+                let inventario = JSON.parse(localStorage.getItem('inventario_el_triunfo')) || [];
+                inventario = inventario.filter(p => p.id !== id);
+                localStorage.setItem('inventario_el_triunfo', JSON.stringify(inventario));
+                cargarInventarioCompleto();
+                alert('✅ Producto eliminado');
+            }
+        }
+
+function logout() {
+    if (confirm('¿Cerrar sesión?')) {
+        localStorage.removeItem('userLogged');
+        localStorage.removeItem('userRol');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html';
+    }
+}
+    </script>
+</body>
+</html>

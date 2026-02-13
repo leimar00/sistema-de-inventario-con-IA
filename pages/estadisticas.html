@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas - El Triunfo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/inventario.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-paisa fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-3" href="index.html">
+                <span class="paisa-icon">🏪</span> EL TRIUNFO
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="userRol">
+                    <span class="badge bg-success" id="rolBadge">ADMIN</span>
+                </span>
+                <button class="btn btn-paisa btn-sm me-2" onclick="cambiarRol()">Cambiar Rol</button>
+                <a href="index.html" class="btn btn-outline-light btn-sm">Inicio</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-5">
+        <!-- Header -->
+        <div class="card card-paisa mb-5">
+            <div class="card-body text-center">
+                <h1 class="header-title mb-3">
+                    <span class="paisa-icon">📊</span> Estadísticas
+                </h1>
+                <p class="lead text-muted">"¡Datos en tiempo real, parce!"</p>
+            </div>
+        </div>
+
+        <!-- Cards Estadísticas Principales -->
+        <div class="row mb-5">
+            <div class="col-md-4 mb-4">
+                <div class="card card-paisa text-center stock-bajo">
+                    <div class="card-body">
+                        <h2 id="totalProductos" class="text-warning mb-1">0</h2>
+                        <p class="mb-0 fw-bold">Total Productos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card card-paisa text-center">
+                    <div class="card-body">
+                        <h2 id="totalStock" class="text-success mb-1">0</h2>
+                        <p class="mb-0 fw-bold">Stock Total</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card card-paisa text-center">
+                    <div class="card-body">
+                        <h2 id="totalMovimientos" class="text-primary mb-1">0</h2>
+                        <p class="mb-0 fw-bold">Movimientos</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Detalles -->
+        <div class="row">
+            <!-- Productos Bajo Stock -->
+            <div class="col-md-6 mb-4">
+                <div class="card card-paisa h-100">
+                    <div class="card-header bg-warning bg-opacity-75">
+                        <h5 class="mb-0"><span class="paisa-icon">⚠️</span> Bajo Stock (≤5)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group list-group-flush" id="bajoStock">
+                            <li class="list-group-item text-muted text-center py-4">Cargando...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Producto Más Movido -->
+            <div class="col-md-6 mb-4">
+                <div class="card card-paisa h-100">
+                    <div class="card-header bg-success bg-opacity-75">
+                        <h5 class="mb-0"><span class="paisa-icon">🏆</span> Más Movido</h5>
+                    </div>
+                    <div class="card-body text-center" id="productoMasMovido">
+                        <p class="text-muted">No hay movimientos aún</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla Movimientos Recientes -->
+        <div class="card card-paisa mt-4">
+            <div class="card-header bg-info bg-opacity-75">
+                <h5 class="mb-0 text-white"><span class="paisa-icon">📈</span> Últimos 10 Movimientos</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Cant.</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaMovimientosEstadisticas">
+                            <tr><td colspan="5" class="text-center py-4">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navegación Rápida -->
+        <div class="row mt-4">
+            <div class="col-md-3 mb-2">
+                <a href="productos.html" class="btn btn-paisa w-100">📦 Productos</a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="movimientos.html" class="btn btn-success w-100">📈 Movimientos</a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="dashboard.html" class="btn btn-warning w-100">📋 Dashboard</a>
+            </div>
+            <div class="col-md-3 mb-2">
+                <a href="index.html" class="btn btn-secondary w-100">🏠 Inicio</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JS del Sistema (TODOS los módulos) -->
+    <script src="../js/config.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/storage.js"></script>
+    <script src="../js/products.js"></script>
+    <script src="../js/movimientos.js"></script>
+    <script src="../js/notificaciones.js"></script>
+    <script src="../js/pages.js"></script>
+    
+    <!-- JS específico para estadísticas -->
+    <script>
+        // ESTADÍSTICAS AUTOMÁTICAS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar datos
+            function actualizarEstadisticas() {
+                const inventario = Products.getAll() || [];
+                const movimientos = Movimientos.getAll() || [];
+
+                // Cards principales
+                document.getElementById('totalProductos').textContent = inventario.length;
+                document.getElementById('totalStock').textContent = inventario.reduce((sum, p) => sum + p.cantidad, 0);
+                document.getElementById('totalMovimientos').textContent = movimientos.length;
+
+                // Bajo stock
+                const bajoStock = inventario
+                    .filter(p => p.cantidad <= 5)
+                    .sort((a, b) => a.cantidad - b.cantidad)
+                    .slice(0, 5);
+
+                const listaBajoStock = document.getElementById('bajoStock');
+                listaBajoStock.innerHTML = bajoStock.length > 0 
+                    ? bajoStock.map(p => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>${p.nombre}</span>
+                            <span class="badge bg-danger">${p.cantidad}</span>
+                        </li>
+                      `).join('')
+                    : '<li class="list-group-item text-success text-center">¡Todo en orden!</li>';
+
+                // Producto más movido
+                if (movimientos.length > 0) {
+                    const conteo = {};
+                    movimientos.forEach(m => {
+                        conteo[m.productoNombre] = (conteo[m.productoNombre] || 0) + 1;
+                    });
+                    const masMovido = Object.entries(conteo).reduce((a, b) => a[1] > b[1] ? a : b);
+                    document.getElementById('productoMasMovido').innerHTML = `
+                        <h4 class="text-primary mb-1">${masMovido[0]}</h4>
+                        <p class="mb-0">${masMovido[1]} movimientos</p>
+                    `;
+                }
+
+                // Últimos movimientos
+                const ultimos = movimientos.slice(0, 10).map(mov => {
+                    const fecha = new Date(mov.fecha).toLocaleString('es-CO');
+                    return `
+                        <tr>
+                            <td>${fecha}</td>
+                            <td>${mov.productoNombre}</td>
+                            <td><span class="badge bg-${mov.tipo === 'entrada' ? 'success' : 'danger'}">${mov.tipo.toUpperCase()}</span></td>
+                            <td><strong>${mov.cantidad}</strong></td>
+                            <td><span class="badge bg-${mov.usuario === 'admin' ? 'dark' : 'info'}">${mov.usuario}</span></td>
+                        </tr>
+                    `;
+                }).join('') || '<tr><td colspan="5" class="text-center py-4 text-muted">Sin movimientos</td></tr>';
+
+                document.getElementById('tablaMovimientosEstadisticas').innerHTML = ultimos;
+            }
+
+            // Ejecutar cada 3 segundos
+            actualizarEstadisticas();
+            setInterval(actualizarEstadisticas, 3000);
+        });
+    </script>
+</body>
+</html>
